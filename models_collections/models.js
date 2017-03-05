@@ -1,9 +1,9 @@
 'use strict';
 
-const db = require('./database');
+const con = require('../database/connection');
 
 // User model
-var User = db.bookshelf.Model.extend({
+var User = con.bookshelf.Model.extend({
     tableName: 'user',
     hasTimestamps: true,
     
@@ -17,7 +17,7 @@ var User = db.bookshelf.Model.extend({
 });
 
 // Meal model
-var Meal = db.bookshelf.Model.extend({
+var Meal = con.bookshelf.Model.extend({
     tableName: 'meal',
     hasTimestamps: true,
 
@@ -31,7 +31,7 @@ var Meal = db.bookshelf.Model.extend({
 });
 
 // Meal subscriptions model
-var MealSubscription = db.bookshelf.Model.extend({
+var MealSubscription = con.bookshelf.Model.extend({
     tableName: 'meal_subscription',
 
     user: function () {

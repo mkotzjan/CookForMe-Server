@@ -27,33 +27,33 @@ app.post('/login', (request, response) => {
   });
 })
 
-// ADD FOOD
-app.post('/addFood', (request, response) => {
-  response.send('Food added');
+// ADD MEAL
+app.post('/addMeal', (request, response) => {
+  response.send('Meal added');
 })
 
-// EDIT FOOD
-app.post('/food/:id/edit', (request, response) => {
-  response.send('Food ' + request.params.id + ' edited');
+// EDIT MEAL
+app.post('/meal/:id/edit', (request, response) => {
+  response.send('Meal ' + request.params.id + ' edited');
 })
 
-// DELETE FOOD
-app.get('/food/:id/delete', (request, response) => {
-  response.send('Food ' + request.params.id + ' deleted');
+// DELETE MEAL
+app.get('/meal/:id/delete', (request, response) => {
+  response.send('Meal ' + request.params.id + ' deleted');
 })
 
-// SIGN IN
-app.get('/food/:id/signIn', (request, response) => {
-  response.send('Signed in to' + request.params.id);
+// SUBSCRIBE TO MEAL
+app.get('/meal/:id/subscribe', (request, response) => {
+  response.send('Subscribed to' + request.params.id);
 })
 
-// SIGN OUT
-app.get('/food/:id/signOut', (request, response) => {
-  response.send('Signed out of ' + request.params.id);
+// UNSUBSCRIBE FROM MEAL
+app.get('/meal/:id/unsubscribe', (request, response) => {
+  response.send('Unsubscribed from ' + request.params.id);
 })
 
 // SUBSCRIBER
-app.get('/food/:id/subscriber', (request, response) => {
+app.get('/meal/:id/subscriber', (request, response) => {
   response.json({});
 })
 
@@ -69,12 +69,12 @@ app.get('/user/:id', (request, response) => {
   response.json({});
 })
 
-// FOOD
-app.get('/food', (request, response) => {
+// MEAL
+app.get('/meal', (request, response) => {
   response.json({});
 })
 
-app.get('/food/:id', (request, response) => {
+app.get('/meal/:id', (request, response) => {
   response.json({});
 })
 
