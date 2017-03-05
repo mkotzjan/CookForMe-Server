@@ -12,5 +12,11 @@ var Meals = con.bookshelf.Collection.extend({
 });
 
 var MealSubscriptions = con.bookshelf.Collection.extend({
-    model.model.MealSubscription
+    model: model.MealSubscription
 });
+
+module.exports = {
+  Users: Users,
+  Meals: Meals,
+  MealSubscriptions: MealSubscriptions
+}
