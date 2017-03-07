@@ -4,6 +4,7 @@ const express = require('express');
 const app = express();
 const port = 3000;
 const bodyParser = require('body-parser');
+const bcrypt = require('bcrypt-nodejs');
 const model = require('./models_collections/models');
 const collection = require('./models_collections/collections');
 
@@ -21,8 +22,7 @@ apiRoutes.get('/', (request, response) => {
 apiRoutes.post('/register', (request, response) => {
   model.User.forge({
     username: request.body.username,
-    // TODO: use bycript for pw
-    password: request.body.password
+    password: bcrypt.hashSync(request.body.password)
   })
   .save().then(function (user) {
     response.json({error: false, data: {id: user.get('id')}});
@@ -72,8 +72,11 @@ apiRoutes.get('/meal/:id/subscriber', (request, response) => {
 })
 
 // USER
+
+var userInfo = ['id', 'username', 'created_at'];
+
 apiRoutes.get('/user', (request, response) => {
-  collection.Users.forge().fetch()
+  collection.Users.forge().fetch({columns: userInfo})
   .then(function (col) {
     response.json({error: false, data: col.toJSON()});
   })
@@ -83,7 +86,7 @@ apiRoutes.get('/user', (request, response) => {
 })
 
 apiRoutes.get('/user/:id', (request, response) => {
-  model.User.forge({id: request.params.id}).fetch()
+  model.User.forge({id: request.params.id}).fetch({columns: userInfo})
   .then(function (user) {
     if (!user) {
       response.status(404).json({error: true, data: {}});
