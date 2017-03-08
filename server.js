@@ -89,7 +89,7 @@ apiRoutes.get('/meal', (request, response) => {
 })
 
 apiRoutes.get('/meal/:id', (request, response) => {
-  model.Meal.forge({id: request.params.id}).fetch()
+  model.Meal.forge({id: request.params.id}).fetch({require: true})
   .then(function (meal) {
     response.json({error: false, data: meal.toJSON()});
   })
@@ -139,48 +139,79 @@ apiRoutes.get('/meal/:id/delete', (request, response) => {
 
 // SUBSCRIBE TO MEAL
 apiRoutes.get('/meal/:id/subscribe', (request, response) => {
-  model.Meal.forge({id: request.params.id})
-  .fetch({withRelated: ['subscriptions'], require: true})
-  .then(function (meal) {
-    if (meal) {
-      var subscriptions = meal.related('subscriptions');
-      // if (subscriptions)
-    }
-  })
-  model.MealSubscription.forge({
-      meal: request.params.id,
-      user: request.get('userID')
-  }).save()
-  .then(function () {
-    response.json({error: false, data: {}});
+  var id = request.params.id;
+
+  collection.MealSubscriptions.query(function (qb) {
+    qb.select().from('meal_subscription').where('meal', id);
+  }).fetch({require: true}).then(function (col) {
+    model.Meal.forge({id: id}).fetch({require: true})
+    .then(function (meal) {
+      // TODO: The date needs to be checked as well
+      var now = new Date();
+      var subscriptions_until = new Date(meal.get('subscriptions_until'));
+      // Check if amount allows any more subscriber
+      if (col.size() >= meal.get('amount')) {
+        throw new IllegalOperationException("Reached max amount of subscribers");
+      } else if (now.getTime() > subscriptions_until.getTime()) { // Check Date
+        throw new IllegalOperationException("No more subscriptions allowed");
+      }
+
+      // Create subscription
+      model.MealSubscription.forge({
+          meal: request.params.id,
+          user: request.get('userID')
+      }).save()
+      .then(function () {
+        response.json({error: false, data: {}});
+      }).catch(function (error) {
+        response.status(500).json({error: true, data: {message: error.message}});
+      });
+    }).catch(function (error) {
+      response.status(500).json({error: true, data: {message: error.message}});
+    });
   }).catch(function (error) {
-  response.status(500).json({error: true, data: {message: error.message}});
+    response.status(500).json({error: true, data: {message: error.message}});
   });
 })
 
 // UNSUBSCRIBE FROM MEAL
 apiRoutes.get('/meal/:id/unsubscribe', (request, response) => {
-  model.MealSubscription.forge({
-      meal: request.params.id,
-      user: request.get('userID')
-  }).fetch({require: true})
-  .then(function (mealSubscription) {
-    mealSubscription.destroy().then(function () {
-      response.json({error: false, data: {}});
+  var id = request.params.id;
+
+  model.Meal.forge({id: id}).fetch({require: true})
+  .then(function (meal) {
+    var now = new Date();
+    var subscriptions_until = new Date(meal.get('subscriptions_until'));
+    // Check for date
+    if (now.getTime() > subscriptions_until.getTime()) {
+      throw new IllegalOperationException("It's to late to unsubscribe.");
+    }
+
+    // delete subscription
+    model.MealSubscription.forge({
+        meal: id,
+        user: request.get('userID')
+    }).fetch({require: true})
+    .then(function (mealSubscription) {
+      mealSubscription.destroy().then(function () {
+        response.json({error: false, data: {}});
+      }).catch(function (error) {
+        response.status(500).json({error: true, data: {message: error.message}});
+      });
     }).catch(function (error) {
       response.status(500).json({error: true, data: {message: error.message}});
     });
   }).catch(function (error) {
-  response.status(500).json({error: true, data: {message: error.message}});
-  });
+    response.status(500).json({error: true, data: {message: error.message}});
+  });  
 })
 
 // SUBSCRIBER
 apiRoutes.get('/meal/:id/subscriber', (request, response) => {
-  //collection.MealSubscriptions.forge({meal: request.params.id})
   collection.Users.query(function (qb) {
     qb.select('user.id', 'user.username').from('user')
-    .leftJoin('meal_subscription', 'user.id', 'meal_subscription.user').where('meal', request.params.id);
+    .leftJoin('meal_subscription', 'user.id', 'meal_subscription.user')
+    .where('meal', request.params.id);
   })
   .fetch({require: true})
   .then(function (col) {
