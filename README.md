@@ -14,4 +14,5 @@ Now modify the local environment variables to suit your needs.
 
 Knex.js must be installed globaly for using the migrations.
 Just type `npm install knex -g` and afterwards create the database tables with
-`knex migrate:latest`.
+`knex migrate:latest`. You may want to fill the database with sample data: `knex
+seed:run`.
