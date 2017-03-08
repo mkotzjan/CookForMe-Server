@@ -26,7 +26,7 @@ var Meal = con.bookshelf.Model.extend({
     },
 
     subscriptions: function () {
-      return this.belongsToMany(MealSubscription, 'meal_subscriptions', 'id', 'meal');
+      return this.belongsToMany(MealSubscription, 'meal_subscription', 'id', 'meal');
     }
 });
 
