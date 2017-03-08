@@ -16,11 +16,14 @@ exports.up = function(knex, Promise) {
       table.string('meeting_place').notNullable();
       table.dateTime('meeting_date').notNullable();
       table.dateTime('subscriptions_until').notNullable();
+      table.timestamps();
     }),
     knex.schema.createTable('meal_subscription', function(table) {
       table.increments('id');
       table.integer('meal').unsigned().references('id').inTable('meal').onDelete('CASCADE').notNullable();
       table.integer('user').unsigned().references('id').inTable('user').onDelete('CASCADE').notNullable();
+      table.timestamps();
+      table.unique(['meal', 'user']);
     })
   ])
 };

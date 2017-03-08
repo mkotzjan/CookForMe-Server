@@ -8,11 +8,11 @@ var User = con.bookshelf.Model.extend({
     hasTimestamps: true,
     
     meals: function () {
-      return this.belongsToMany(Meal);
+      return this.belongsToMany(Meal, 'meal', 'id', 'user');
     },
     
     meal_subscriptions: function () {
-      return this.belongsToMany(MealSubscription);
+      return this.belongsToMany(MealSubscription, 'meal_subscription', 'id', 'user');
     }
 });
 
@@ -22,24 +22,25 @@ var Meal = con.bookshelf.Model.extend({
     hasTimestamps: true,
 
     user: function () {
-      return this.belongsTo(User);
+      return this.belongsTo(User, 'user', 'user');
     },
 
     subscriptions: function () {
-      return this.belongsToMany(MealSubscription);
+      return this.belongsToMany(MealSubscription, 'meal_subscriptions', 'id', 'meal');
     }
 });
 
 // Meal subscriptions model
 var MealSubscription = con.bookshelf.Model.extend({
     tableName: 'meal_subscription',
+    hasTimestamps: true,
 
     user: function () {
-      return this.belongsTo(User);
+      return this.belongsTo(User, 'user', 'id');
     },
 
     meal: function () {
-      return this.belongsTo(Meal);
+      return this.belongsTo(Meal, 'meal', 'id');
     }
 });
 
