@@ -4,15 +4,21 @@ const express = require('express');
 const app = express();
 const port = 3000;
 const bodyParser = require('body-parser');
-const bcrypt = require('bcrypt-nodejs');
+const bcrypt = require('bcrypt');
 const model = require('./models_collections/models');
 const collection = require('./models_collections/collections');
+const saltRounds = 10;
 
 // use body parser to get info from post and/or URL parameter
 app.use(bodyParser.urlencoded({ extended: false}));
 app.use(bodyParser.json());
 
 // Error functions
+function AuthenticationException(message) {
+  this.message = message;
+  this.name = "DivisionException";
+}
+
 function IllegalAccessException(message) {
   this.message = message;
   this.name = "DivisionException";
@@ -32,25 +38,45 @@ apiRoutes.get('/', (request, response) => {
 
 // REGISTER
 apiRoutes.post('/register', (request, response) => {
-  model.User.forge({
-    username: request.body.username,
-    password: bcrypt.hashSync(request.body.password)
+  bcrypt.hash(request.body.password, saltRounds, function(error, hash) {
+    if(error) {
+      return response.status(500).json({error: true, data: error});
+    }
+    console.log(hash);
+    console.log(request.body.password);
+    console.log(typeof(request.body.password));
+    model.User.forge({
+      username: request.body.username,
+      password: hash
+    })
+    .save().then(function (user) {
+      response.json({error: false, data: {id: user.get('id')}});
+    })
+    .catch(function (error) {
+      response.status(500).json({error: true, data: {message: error.message}});
+    });
   })
-  .save().then(function (user) {
-    response.json({error: false, data: {id: user.get('id')}});
-  })
-  .catch(function (err) {
-    response.status(500).json({error: true, data: {message: err.message}});
-  });
 })
 
 // LOGIN
 apiRoutes.post('/login', (request, response) => {
-  // TODO
-  response.json({
-    success: true,
-    message: 'Login sucessful',
-    token: 'example'
+  model.User.forge({username: request.body.username})
+  .fetch().then(function (user) {
+    if(!user) {
+      throw new AuthenticationException("Authentication failed: user");
+    }
+    console.log(bcrypt.hashSync('test', saltRounds));
+    console.log(user.get('password'));
+    bcrypt.compare(request.body.password, user.get('password'), function(error, result) {
+      if(error) {
+        return response.status(500).json({error: true, data: {message: error}});
+      } else if (!result) {
+        return response.status(500).json({error: true, data: {message: "Authentication failed: result"}});
+      }
+      response.json({error: false, token: 'test'});
+    });
+  }).catch(function (error) {
+    response.status(500).json({error: true, data: {message: error.message}});
   });
 })
 
