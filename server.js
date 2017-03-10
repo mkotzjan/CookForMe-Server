@@ -5,9 +5,12 @@ const app = express();
 const port = 3000;
 const bodyParser = require('body-parser');
 const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 const model = require('./models_collections/models');
 const collection = require('./models_collections/collections');
-const saltRounds = 10;
+
+const dotenv = require('dotenv');
+dotenv.load();
 
 // use body parser to get info from post and/or URL parameter
 app.use(bodyParser.urlencoded({ extended: false}));
@@ -38,13 +41,10 @@ apiRoutes.get('/', (request, response) => {
 
 // REGISTER
 apiRoutes.post('/register', (request, response) => {
-  bcrypt.hash(request.body.password, saltRounds, function(error, hash) {
+  bcrypt.hash(request.body.password, process.env.BCRYPT_SALTROUNDS, function(error, hash) {
     if(error) {
       return response.status(500).json({error: true, data: error});
     }
-    console.log(hash);
-    console.log(request.body.password);
-    console.log(typeof(request.body.password));
     model.User.forge({
       username: request.body.username,
       password: hash
@@ -65,26 +65,49 @@ apiRoutes.post('/login', (request, response) => {
     if(!user) {
       throw new AuthenticationException("Authentication failed: user");
     }
-    console.log(bcrypt.hashSync('test', saltRounds));
-    console.log(user.get('password'));
     bcrypt.compare(request.body.password, user.get('password'), function(error, result) {
       if(error) {
         return response.status(500).json({error: true, data: {message: error}});
       } else if (!result) {
         return response.status(500).json({error: true, data: {message: "Authentication failed: result"}});
       }
-      response.json({error: false, token: 'test'});
+      var token = jwt.sign({id: user.get('id')}, process.env.JWT_SECRET, {
+        expiresIn: "24h"
+      });
+      response.json({error: false, token: token});
     });
   }).catch(function (error) {
     response.status(500).json({error: true, data: {message: error.message}});
   });
 })
 
+// MIDDLEWARE TO VERIFY TOKEN
+apiRoutes.use(function(request, response, next) {
+  // Get token from request
+  var token = request.body.token || request.get('token');
+
+  // decode
+  if (token) {
+    // verify
+    jwt.verify(token, process.env.JWT_SECRET, function(error, decoded) {
+      if (error) {
+        return response.status(498).json({error: true, data: {message: 'Token verification failed.'}});
+      } else {
+        // Success
+        request.userID = decoded.id;
+        next();
+      }
+    });
+  } else {
+    return response.status(403).json({error: true, data: {message: 'No token provided.'}});
+  }
+});
+
 // ADD MEAL
 apiRoutes.post('/addMeal', (request, response) => {
   model.Meal.forge({
     // Use userID from athenticate middleware
-    user:                request.get('userID'),
+    user:                request.userID,
     title:               request.body.title,
     description:         request.body.description,
     amount:              request.body.amount,
@@ -129,7 +152,7 @@ apiRoutes.post('/meal/:id/edit', (request, response) => {
   model.Meal.forge({id: request.params.id})
   .fetch({require: true}).then(function (meal) {
     // Check if user is permitted: User has to be the one who added the meal
-    if (meal.get('user') !== parseInt(request.get('userID'))) {
+    if (meal.get('user') !== parseInt(request.userID)) {
       throw new IllegalAccessException("User is not permitted to alter the meal.");
     }
     
@@ -153,6 +176,11 @@ apiRoutes.post('/meal/:id/edit', (request, response) => {
 apiRoutes.get('/meal/:id/delete', (request, response) => {
   model.Meal.forge({id: request.params.id})
   .fetch({require: true}).then(function (meal) {
+    if (meal.get('user') !== parseInt(request.userID)) {
+      throw new IllegalAccessException("User is not permitted to delete the meal.");
+    }
+
+    // Delete meal
     meal.destroy().then(function () {
       response.json({error: false, data: {}});
     }).catch(function (error) {
