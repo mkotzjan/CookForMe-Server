@@ -41,9 +41,9 @@ apiRoutes.get('/', (request, response) => {
 
 // REGISTER
 apiRoutes.post('/register', (request, response) => {
-  bcrypt.hash(request.body.password, process.env.BCRYPT_SALTROUNDS, function(error, hash) {
+  bcrypt.hash(request.body.password, parseInt(process.env.BCRYPT_SALTROUNDS), function(error, hash) {
     if(error) {
-      return response.status(500).json({error: true, data: error});
+      return response.status(500).json({error: true, data: error.message});
     }
     model.User.forge({
       username: request.body.username,
@@ -63,13 +63,13 @@ apiRoutes.post('/login', (request, response) => {
   model.User.forge({username: request.body.username})
   .fetch().then(function (user) {
     if(!user) {
-      throw new AuthenticationException("Authentication failed: user");
+      throw new AuthenticationException("Authentication failed");
     }
-    bcrypt.compare(request.body.password, user.get('password'), function(error, result) {
+    bcrypt.compare(request.body.password, user.get('password').toString(), function(error, result) {
       if(error) {
-        return response.status(500).json({error: true, data: {message: error}});
+        return response.status(500).json({error: true, data: {message: error.message}});
       } else if (!result) {
-        return response.status(500).json({error: true, data: {message: "Authentication failed: result"}});
+        return response.status(500).json({error: true, data: {message: "Authentication failed"}});
       }
       var token = jwt.sign({id: user.get('id')}, process.env.JWT_SECRET, {
         expiresIn: "24h"
