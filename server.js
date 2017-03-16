@@ -46,7 +46,9 @@ apiRoutes.post('/register', (request, response) => {
       return response.status(500).json({error: true, data: error.message});
     }
     model.User.forge({
-      username: request.body.username,
+      email: request.body.email,
+      firstname: request.body.firstname,
+      lastname: request.body.lastname,
       password: hash
     })
     .save().then(function (user) {
@@ -60,7 +62,7 @@ apiRoutes.post('/register', (request, response) => {
 
 // LOGIN
 apiRoutes.post('/login', (request, response) => {
-  model.User.forge({username: request.body.username})
+  model.User.forge({email: request.body.email})
   .fetch().then(function (user) {
     if(!user) {
       throw new AuthenticationException("Authentication failed");
@@ -74,7 +76,7 @@ apiRoutes.post('/login', (request, response) => {
       var token = jwt.sign({id: user.get('id')}, process.env.JWT_SECRET, {
         expiresIn: "24h"
       });
-      response.json({error: false, token: token});
+      response.json({error: false, data: {id: user.get('id'), token: token}});
     });
   }).catch(function (error) {
     response.status(500).json({error: true, data: {message: error.message}});
@@ -263,7 +265,7 @@ apiRoutes.get('/meal/:id/unsubscribe', (request, response) => {
 // SUBSCRIBER
 apiRoutes.get('/meal/:id/subscriber', (request, response) => {
   collection.Users.query(function (qb) {
-    qb.select('user.id', 'user.username').from('user')
+    qb.select('user.id', 'user.firstname', 'user.lastname').from('user')
     .leftJoin('meal_subscription', 'user.id', 'meal_subscription.user')
     .where('meal', request.params.id);
   })
@@ -278,7 +280,7 @@ apiRoutes.get('/meal/:id/subscriber', (request, response) => {
 
 // USER
 
-var userInfo = ['id', 'username', 'created_at'];
+var userInfo = ['id', 'firstname', 'lastname', 'created_at'];
 
 apiRoutes.get('/user', (request, response) => {
   collection.Users.forge().fetch({columns: userInfo})
